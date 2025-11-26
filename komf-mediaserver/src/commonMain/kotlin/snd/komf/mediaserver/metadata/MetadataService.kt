@@ -57,7 +57,9 @@ class MetadataService(
     private val seriesMatchRepository: SeriesMatchRepository,
     private val libraryType: MediaType,
     private val jobTracker: KomfJobTracker,
+    unmatchedTagName: String?,
 ) {
+    private val unmatchedTagHandler = UnmatchedTagHandler(mediaServerClient, unmatchedTagName)
     private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     fun availableProviders(libraryId: MediaServerLibraryId) = metadataProviders.providers(libraryId.value)
@@ -99,7 +101,7 @@ class MetadataService(
         edition: String?
     ): MetadataJobId {
         val jobId = launchJob(seriesId) { eventFlow ->
-            val series = mediaServerClient.getSeries(seriesId)
+            var series = mediaServerClient.getSeries(seriesId)
             val books = mediaServerClient.getBooks(seriesId)
             val seriesTitle = series.metadata.title.ifBlank { series.name }
             logger.info { "Setting metadata for series \"${seriesTitle}\" ${series.id} using $providerName $providerSeriesId" }
@@ -110,6 +112,7 @@ class MetadataService(
             val bookMetadata = getBookMetadata(books, seriesMetadata, provider, edition, eventFlow)
             eventFlow.emit(ProviderCompletedEvent(providerName))
 
+            series = unmatchedTagHandler.clearUnmatched(series)
             val metadata = if (aggregateMetadata) {
                 aggregateMetadataFromProviders(
                     series = series,
@@ -162,7 +165,7 @@ class MetadataService(
     ): MetadataJobId {
 
         val jobId = launchJob(seriesId) { eventFlow ->
-            val series = mediaServerClient.getSeries(seriesId)
+            var series = mediaServerClient.getSeries(seriesId)
             val books = mediaServerClient.getBooks(seriesId)
             val seriesTitle = series.metadata.title.ifBlank { series.name }
 
@@ -191,10 +194,12 @@ class MetadataService(
 
             if (matchResult == null) {
                 logger.info { "no match found for series $seriesTitle ${series.id}" }
+                unmatchedTagHandler.markUnmatched(series)
                 return@launchJob
             }
             eventFlow.emit(ProviderCompletedEvent(matchResult.first.providerName()))
 
+            series = unmatchedTagHandler.clearUnmatched(series)
             val metadata = matchResult.let { (provider, metadata) ->
                 if (aggregateMetadata) {
                     aggregateMetadataFromProviders(

@@ -70,6 +70,8 @@ class MetadataPostProcessingConfigUpdateRequest(
     val readingDirectionValue: PatchValue<KomfReadingDirection> = PatchValue.Unset,
     val languageValue: PatchValue<String> = PatchValue.Unset,
 
+    val unmatchedTagName: PatchValue<String> = PatchValue.Unset,
+
     val scoreTagName: PatchValue<String> = PatchValue.Unset,
     val originalPublisherTagName: PatchValue<String> = PatchValue.Unset,
     val publisherTagNames: PatchValue<List<PublisherTagNameConfigDto>> = PatchValue.Unset,

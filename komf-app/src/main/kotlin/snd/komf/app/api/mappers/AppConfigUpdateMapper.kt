@@ -418,6 +418,11 @@ class AppConfigUpdateMapper {
                 PatchValue.Unset -> config.languageValue
             },
             fallbackToAltTitle = patch.fallbackToAltTitle.getOrNull() ?: config.fallbackToAltTitle,
+            unmatchedTagName = when (val tagName = patch.unmatchedTagName) {
+                PatchValue.None -> null
+                is PatchValue.Some -> tagName.value
+                PatchValue.Unset -> config.unmatchedTagName
+            },
 
             scoreTagName = when (val tagName = patch.scoreTagName) {
                 PatchValue.None -> null

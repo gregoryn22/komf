@@ -66,6 +66,8 @@ data class MetadataPostProcessingConfigDto(
     val languageValue: String?,
     val fallbackToAltTitle: Boolean,
 
+    val unmatchedTagName: String?,
+
     val scoreTagName: String?,
     val originalPublisherTagName: String?,
     val publisherTagNames: List<PublisherTagNameConfigDto>,

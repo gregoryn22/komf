@@ -116,6 +116,7 @@ komga:
           - "en"
           - "ja"
           - "ja-ro"
+        unmatchedTagName: # tag to apply to series when metadata matching fails. Leave empty to disable
         orderBooks: false # will order books using parsed volume or chapter number
         scoreTagName: "score" # adds score tag of specified format e.g. "score: 8" only uses integer part of rating. Can be used in search using query: tag:"score: 8" in komga
         readingDirectionValue: # override reading direction for all series. should be one of these: LEFT_TO_RIGHT, RIGHT_TO_LEFT, VERTICAL, WEBTOON
@@ -152,6 +153,7 @@ kavita:
         alternativeSeriesTitles: false # use other title types as alternative title option
         alternativeSeriesTitleLanguages: # alternative title language. Only first language is used. Use single value for consistency
           - "ja-ro"
+        unmatchedTagName: # tag to apply to series when metadata matching fails. Leave empty to disable
         orderBooks: false # will order books using parsed volume or chapter number. works only with COMIC_INFO
         languageValue: # set default language for series. Must use BCP 47 format e.g. "en"
 

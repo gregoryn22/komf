@@ -132,7 +132,8 @@ class DeprecatedConfigUpdateMapper {
             orderBooks = config.orderBooks,
             readingDirectionValue = config.readingDirectionValue,
             languageValue = config.languageValue,
-            fallbackToAltTitle = config.fallbackToAltTitle
+            fallbackToAltTitle = config.fallbackToAltTitle,
+            unmatchedTagName = config.unmatchedTagName,
         )
     }
 
@@ -579,6 +580,11 @@ class DeprecatedConfigUpdateMapper {
                 PatchValue.Unset -> config.languageValue
             },
             fallbackToAltTitle = patch.fallbackToAltTitle ?: config.fallbackToAltTitle,
+            unmatchedTagName = when (val tagName = patch.unmatchedTagName) {
+                PatchValue.None -> null
+                is PatchValue.Some -> tagName.value
+                PatchValue.Unset -> config.unmatchedTagName
+            },
         )
     }
 

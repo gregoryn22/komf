@@ -77,6 +77,7 @@ class MetadataPostProcessingConfigUpdateDto(
     val readingDirectionValue: PatchValue<ReadingDirection> = PatchValue.Unset,
     val languageValue: PatchValue<String> = PatchValue.Unset,
     val fallbackToAltTitle: Boolean? = null,
+    val unmatchedTagName: PatchValue<String> = PatchValue.Unset,
 )
 
 @Serializable

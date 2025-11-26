@@ -69,6 +69,8 @@ data class MetadataPostProcessingConfig(
     val readingDirectionValue: ReadingDirection? = null,
     val languageValue: String? = null,
 
+    val unmatchedTagName: String? = null,
+
     val scoreTagName: String? = null,
     val originalPublisherTagName: String? = null,
     val publisherTagNames: List<PublisherTagNameConfig> = emptyList(),

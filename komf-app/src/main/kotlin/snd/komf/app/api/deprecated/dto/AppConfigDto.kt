@@ -68,6 +68,7 @@ data class MetadataPostProcessingConfigDto(
     val readingDirectionValue: ReadingDirection?,
     val languageValue: String?,
     val fallbackToAltTitle: Boolean,
+    val unmatchedTagName: String?,
 )
 
 @Serializable

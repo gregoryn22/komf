@@ -115,6 +115,7 @@ class AppConfigMapper {
             readingDirectionValue = config.readingDirectionValue?.fromReadingDirection(),
             languageValue = config.languageValue,
             fallbackToAltTitle = config.fallbackToAltTitle,
+            unmatchedTagName = config.unmatchedTagName,
             scoreTagName = config.scoreTagName,
             originalPublisherTagName = config.originalPublisherTagName,
             publisherTagNames = config.publisherTagNames.map { PublisherTagNameConfigDto(it.tagName, it.language) }
