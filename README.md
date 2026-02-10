@@ -132,6 +132,7 @@ komga:
       mergeGenres: false # if true and aggregate is enabled will merge genres from all providers
       bookCovers: false # update book thumbnails
       seriesCovers: false # update series thumbnails
+      fallbackUseSeriesCoverForBook: false # If updating series cover and book cover, and no book cover exists, use the series cover for the book cover.
       overrideExistingCovers: true # if false will upload but not select new cover if another cover already exists
       replaceGrayscaleSeriesCovers: false # experimental. upload series cover if the current poster looks like a black and white interior page
       overrideComicInfo: false # Replace existing ComicInfo file. If false, only append additional data
@@ -177,6 +178,7 @@ kavita:
       mergeGenres: false # if true and aggregate is enabled will merge genres from all providers
       bookCovers: false #update book thumbnails
       seriesCovers: false #update series thumbnails
+      fallbackUseSeriesCoverForBook: false # If updating series cover and book cover, and no book cover exists, use the series cover for the book cover.
       overrideExistingCovers: true # if false will upload but not select new cover if another cover already exists
       lockCovers: true # lock cover images so that kavita does not change them
       postProcessing:
@@ -297,6 +299,7 @@ komga_or_kavita:
         aggregate: false
         bookCovers: false
         seriesCovers: false
+        fallbackUseSeriesCoverForBook: false
         postProcessing:
           seriesTitle: false
           titleType: LOCALIZED
