@@ -67,12 +67,14 @@ class MetadataPostProcessingConfigUpdateRequest(
     val fallbackToAltTitle: PatchValue<Boolean> = PatchValue.Unset,
 
     val orderBooks: PatchValue<Boolean> = PatchValue.Unset,
+    val respectBookNumberLock: PatchValue<Boolean> = PatchValue.Unset,
     val readingDirectionValue: PatchValue<KomfReadingDirection> = PatchValue.Unset,
     val languageValue: PatchValue<String> = PatchValue.Unset,
 
     val scoreTagName: PatchValue<String> = PatchValue.Unset,
     val originalPublisherTagName: PatchValue<String> = PatchValue.Unset,
     val publisherTagNames: PatchValue<List<PublisherTagNameConfigDto>> = PatchValue.Unset,
+    val titleSanitization: PatchValue<TitleSanitizationConfig> = PatchValue.Unset,
 )
 
 @Serializable

@@ -56,12 +56,20 @@ data class MetadataProcessingConfigDto(
 )
 
 @Serializable
+data class TitleSanitizationConfig(
+    val enabled: Boolean = false,
+    val stripSuffixes: List<String> = emptyList(),
+    val stripPatterns: List<String> = emptyList()
+)
+
+@Serializable
 data class MetadataPostProcessingConfigDto(
     val seriesTitle: Boolean,
     val seriesTitleLanguage: String?,
     val alternativeSeriesTitles: Boolean?,
     val alternativeSeriesTitleLanguages: List<String>,
     val orderBooks: Boolean,
+    val respectBookNumberLock: Boolean,
     val readingDirectionValue: KomfReadingDirection?,
     val languageValue: String?,
     val fallbackToAltTitle: Boolean,
@@ -69,6 +77,7 @@ data class MetadataPostProcessingConfigDto(
     val scoreTagName: String?,
     val originalPublisherTagName: String?,
     val publisherTagNames: List<PublisherTagNameConfigDto>,
+    val titleSanitization: TitleSanitizationConfig = TitleSanitizationConfig(),
 )
 
 @Serializable

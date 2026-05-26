@@ -407,6 +407,7 @@ class AppConfigUpdateMapper {
             alternativeSeriesTitleLanguages = patch.alternativeSeriesTitleLanguages.getOrNull()
                 ?: config.alternativeSeriesTitleLanguages,
             orderBooks = patch.orderBooks.getOrNull() ?: config.orderBooks,
+            respectBookNumberLock = patch.respectBookNumberLock.getOrNull() ?: config.respectBookNumberLock,
             readingDirectionValue = when (val readingDirection = patch.readingDirectionValue) {
                 PatchValue.None -> null
                 is PatchValue.Some -> readingDirection.value.toReadingDirection()
@@ -432,6 +433,7 @@ class AppConfigUpdateMapper {
             publisherTagNames = patch.publisherTagNames.getOrNull()
                 ?.map { PublisherTagNameConfig(it.tagName, it.language) }
                 ?: config.publisherTagNames,
+            titleSanitization = patch.titleSanitization.getOrNull() ?: config.titleSanitization,
         )
     }
 

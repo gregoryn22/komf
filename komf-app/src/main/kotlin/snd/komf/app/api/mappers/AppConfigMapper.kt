@@ -112,12 +112,14 @@ class AppConfigMapper {
             alternativeSeriesTitles = config.alternativeSeriesTitles,
             alternativeSeriesTitleLanguages = config.alternativeSeriesTitleLanguages,
             orderBooks = config.orderBooks,
+            respectBookNumberLock = config.respectBookNumberLock,
             readingDirectionValue = config.readingDirectionValue?.fromReadingDirection(),
             languageValue = config.languageValue,
             fallbackToAltTitle = config.fallbackToAltTitle,
             scoreTagName = config.scoreTagName,
             originalPublisherTagName = config.originalPublisherTagName,
-            publisherTagNames = config.publisherTagNames.map { PublisherTagNameConfigDto(it.tagName, it.language) }
+            publisherTagNames = config.publisherTagNames.map { PublisherTagNameConfigDto(it.tagName, it.language) },
+            titleSanitization = config.titleSanitization
         )
     }
 

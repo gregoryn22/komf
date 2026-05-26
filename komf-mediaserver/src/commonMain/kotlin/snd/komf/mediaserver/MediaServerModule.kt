@@ -316,6 +316,7 @@ class MediaServerModule(
             metadataMerger = MetadataMerger(mergeTags = config.mergeTags, mergeGenres = config.mergeGenres),
             libraryType = config.libraryType,
             jobTracker = jobTracker,
+            config = config,
         )
     }
 
@@ -345,7 +346,7 @@ class MediaServerModule(
             mediaServerClient = mediaServerClient,
             seriesThumbnailsRepository = seriesThumbnailsRepository,
             bookThumbnailsRepository = bookThumbnailsRepository,
-            metadataUpdateMapper = MetadataMapper(),
+            metadataUpdateMapper = MetadataMapper(respectBookNumberLock = config.postProcessing.respectBookNumberLock),
             postProcessor = postProcessor,
             comicInfoWriter = ComicInfoWriter.Companion.getInstance(config.overrideComicInfo),
 

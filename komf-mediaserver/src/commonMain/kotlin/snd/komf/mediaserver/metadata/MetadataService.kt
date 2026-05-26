@@ -45,6 +45,8 @@ import snd.komf.providers.CoreProviders
 import snd.komf.providers.MetadataProvider
 import snd.komf.providers.ProvidersModule
 import snd.komf.util.BookNameParser
+import snd.komf.mediaserver.metadata.sanitizeTitle
+import snd.komf.providers.yenpress.YenPressEmptySeriesException
 
 private val logger = KotlinLogging.logger {}
 
@@ -57,8 +59,10 @@ class MetadataService(
     private val seriesMatchRepository: SeriesMatchRepository,
     private val libraryType: MediaType,
     private val jobTracker: KomfJobTracker,
+    private val config: snd.komf.mediaserver.config.MetadataProcessingConfig,
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val titleSanitization = config.postProcessing.titleSanitization
 
     fun availableProviders(libraryId: MediaServerLibraryId) = metadataProviders.providers(libraryId.value)
     fun availableProviders() = metadataProviders.defaultProvidersList()
@@ -68,16 +72,18 @@ class MetadataService(
         libraryId: MediaServerLibraryId
     ): Collection<SeriesSearchResult> {
         val providers = metadataProviders.providers(libraryId.value)
+        val sanitizedName = sanitizeTitle(seriesName, titleSanitization)
 
         return providers
-            .map { coroutineScope.async { it.searchSeries(seriesName) } }
+            .map { coroutineScope.async { it.searchSeries(sanitizedName) } }
             .flatMap { it.await() }
     }
 
     suspend fun searchSeriesMetadata(seriesName: String): Collection<SeriesSearchResult> {
         val providers = metadataProviders.defaultProvidersList()
+        val sanitizedName = sanitizeTitle(seriesName, titleSanitization)
         return providers
-            .map { coroutineScope.async { it.searchSeries(seriesName) } }
+            .map { coroutineScope.async { it.searchSeries(sanitizedName) } }
             .flatMap { it.await() }
     }
 
@@ -176,16 +182,39 @@ class MetadataService(
                 val bookMetadata = getBookMetadata(books, seriesMetadata, matchProvider, null, eventFlow)
                 matchProvider to SeriesAndBookMetadata(seriesMetadata.metadata, bookMetadata)
             } else {
-                val searchTitles = listOfNotNull(
-                    seriesTitle,
-                    removeParentheses(seriesTitle).let { if (it == seriesTitle) null else it }
-                ).plus(series.metadata.alternativeTitles.map { it.title })
+                val baseTitle = seriesTitle
+                val sanitizedBase = sanitizeTitle(baseTitle, titleSanitization)
+                
+                val searchTitles = buildList {
+                    add(sanitizedBase)
+                    
+                    val noParens = removeParentheses(sanitizedBase)
+                    if (noParens != sanitizedBase) add(noParens)
+                    
+                    // alt titles
+                    series.metadata.alternativeTitles.forEach { alt ->
+                        val altSanitized = sanitizeTitle(alt.title, titleSanitization)
+                        add(altSanitized)
+                    }
+                }
 
                 logger.info { "attempting to match series \"${seriesTitle}\" ${series.id}" }
 
                 metadataProviders.providers(series.libraryId.value).firstNotNullOfOrNull { provider ->
-                    matchSeries(series, books, searchTitles, provider, null, eventFlow)
-                        ?.let { provider to it }
+                    try {
+                        matchSeries(series, books, searchTitles, provider, null, eventFlow)
+                            ?.let { provider to it }
+                    } catch (e: ProviderException) {
+                        val cause = e.cause
+                        val errorMessage = if (cause is ResponseException) {
+                            "${cause::class.simpleName}: status code ${cause.response.status} ${cause.response.bodyAsText()}"
+                        } else {
+                            "${cause?.let { "${it::class.simpleName}: ${it.message}" } ?: "Unknown error"}"
+                        }
+                        logger.warn { "Provider ${e.provider} failed during series match, skipping: $errorMessage" }
+                        eventFlow.emit(ProviderErrorEvent(provider = e.provider, message = errorMessage))
+                        null
+                    }
                 }
             }
 
@@ -230,6 +259,9 @@ class MetadataService(
             eventFlow.emit(ProviderSeriesEvent(provider.providerName()))
             val result = try {
                 provider.matchSeriesMetadata(createMatchQuery(searchTitle, series, books))
+            } catch (e: YenPressEmptySeriesException) {
+                logger.debug { "YenPress has no books for series, skipping provider" }
+                return null
             } catch (e: Exception) {
                 throw ProviderException(provider.providerName(), e)
             }
@@ -335,17 +367,28 @@ class MetadataService(
         return providers
             .map { provider ->
                 coroutineScope.async {
-                    matchSeries(
-                        series = series,
-                        books = books,
-                        searchTitles = searchTitles,
-                        provider = provider,
-                        bookEdition = edition,
-                        eventFlow = eventFlow
-                    ).also {
-                        eventFlow.emit(ProviderCompletedEvent(provider.providerName()))
+                    try {
+                        matchSeries(
+                            series = series,
+                            books = books,
+                            searchTitles = searchTitles,
+                            provider = provider,
+                            bookEdition = edition,
+                            eventFlow = eventFlow
+                        ).also {
+                            eventFlow.emit(ProviderCompletedEvent(provider.providerName()))
+                        }
+                    } catch (e: ProviderException) {
+                        val cause = e.cause
+                        val errorMessage = if (cause is ResponseException) {
+                            "${cause::class.simpleName}: status code ${cause.response.status} ${cause.response.bodyAsText()}"
+                        } else {
+                            "${cause?.let { "${it::class.simpleName}: ${it.message}" } ?: "Unknown error"}"
+                        }
+                        logger.warn { "Provider ${e.provider} failed during metadata aggregation, skipping: $errorMessage" }
+                        eventFlow.emit(ProviderErrorEvent(provider = e.provider, message = errorMessage))
+                        null
                     }
-
                 }
             }
             .mapNotNull { it.await() }
@@ -395,6 +438,8 @@ class MetadataService(
 
         return try {
             provider.getSeriesMetadata(providerSeriesId)
+        } catch (e: YenPressEmptySeriesException) {
+            throw e
         } catch (e: Exception) {
             throw ProviderException(provider.providerName(), e)
         }
@@ -430,6 +475,8 @@ class MetadataService(
                     )
                 )
                 logger.catching(providerException)
+            } catch (exception: YenPressEmptySeriesException) {
+                logger.debug { "YenPress has no books for series: ${exception.message}" }
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: ResponseException) {
