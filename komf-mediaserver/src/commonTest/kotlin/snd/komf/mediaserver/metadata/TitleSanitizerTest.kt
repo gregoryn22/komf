@@ -8,7 +8,7 @@ class TitleSanitizerTest {
 
     private val cfg = TitleSanitizationConfig(
         enabled = true,
-        stripSuffixes = listOf("(Volumes)"),
+        stripSuffixes = listOf("(Volumes)", "(Colored)"),
         stripPatterns = listOf("\\s*\\(Chapters\\)$")
     )
 
@@ -28,6 +28,37 @@ class TitleSanitizerTest {
     fun `strips suffixes case-insensitively`() {
         val result = sanitizeTitle("My Series (volumes)", cfg)
         assertEquals("My Series", result)
+    }
+
+    @Test
+    fun `strips multiple suffixes in combination`() {
+        val result = sanitizeTitle("My Series (Colored) (Volumes)", cfg)
+        assertEquals("My Series", result)
+    }
+
+    @Test
+    fun `strips suffixes in any order they appear`() {
+        val result = sanitizeTitle("My Series (Volumes) (Colored)", cfg)
+        assertEquals("My Series", result)
+    }
+
+    @Test
+    fun `strips square bracket suffixes`() {
+        val cfg2 = cfg.copy(stripSuffixes = listOf("[Colored]", "[Volumes]"))
+        assertEquals("My Series", sanitizeTitle("My Series [Colored] [Volumes]", cfg2))
+    }
+
+    @Test
+    fun `strips curly bracket suffixes`() {
+        val cfg2 = cfg.copy(stripSuffixes = listOf("{Colored}", "{Volumes}"))
+        assertEquals("My Series", sanitizeTitle("My Series {Colored} {Volumes}", cfg2))
+    }
+
+    @Test
+    fun `regex pattern with literal brackets must be escaped`() {
+        // unescaped [ in pattern is invalid regex — should throw
+        val badCfg = cfg.copy(stripSuffixes = emptyList(), stripPatterns = listOf("\\s*\\[Colored\\]$"))
+        assertEquals("My Series", sanitizeTitle("My Series [Colored]", badCfg))
     }
 
     @Test

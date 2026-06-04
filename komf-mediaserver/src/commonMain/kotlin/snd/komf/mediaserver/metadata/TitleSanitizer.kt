@@ -9,12 +9,16 @@ fun sanitizeTitle(raw: String, config: TitleSanitizationConfig): String {
     var result = raw.trim()
     
     // 1) Strip explicit suffixes
-    config.stripSuffixes.forEach { suffix ->
-        if (suffix.isNotBlank() && result.endsWith(suffix, ignoreCase = true)) {
-            result = result.dropLast(suffix.length)
+    var prev: String
+    do {
+        prev = result
+        config.stripSuffixes.forEach { suffix ->
+            if (suffix.isNotBlank() && result.trimEnd().endsWith(suffix, ignoreCase = true)) {
+                result = result.trimEnd().dropLast(suffix.length)
+            }
         }
-    }
-    
+    } while (result != prev)
+
     // 2) Apply regex patterns (ignore empty patterns)
     config.stripPatterns.forEach { pattern ->
         if (pattern.isNotBlank()) {
