@@ -25,6 +25,12 @@ class TitleSanitizerTest {
     }
 
     @Test
+    fun `strips suffixes case-insensitively`() {
+        val result = sanitizeTitle("My Series (volumes)", cfg)
+        assertEquals("My Series", result)
+    }
+
+    @Test
     fun `returns raw title when disabled`() {
         val disabled = cfg.copy(enabled = false)
         val result = sanitizeTitle("My Series (Volumes)", disabled)

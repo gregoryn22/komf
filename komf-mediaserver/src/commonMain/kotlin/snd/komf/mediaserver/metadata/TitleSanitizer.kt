@@ -11,7 +11,7 @@ fun sanitizeTitle(raw: String, config: TitleSanitizationConfig): String {
     // 1) Strip explicit suffixes
     config.stripSuffixes.forEach { suffix ->
         if (suffix.isNotBlank() && result.endsWith(suffix, ignoreCase = true)) {
-            result = result.removeSuffix(suffix)
+            result = result.dropLast(suffix.length)
         }
     }
     
