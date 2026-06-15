@@ -75,7 +75,7 @@ class MetadataService(
         val sanitizedName = sanitizeTitle(seriesName, titleSanitization)
 
         return providers
-            .map { coroutineScope.async { it.searchSeries(sanitizedName) } }
+            .map { provider -> coroutineScope.async { safeProviderSearch(provider, sanitizedName) } }
             .flatMap { it.await() }
     }
 
@@ -83,9 +83,10 @@ class MetadataService(
         val providers = metadataProviders.defaultProvidersList()
         val sanitizedName = sanitizeTitle(seriesName, titleSanitization)
         return providers
-            .map { coroutineScope.async { it.searchSeries(sanitizedName) } }
+            .map { provider -> coroutineScope.async { safeProviderSearch(provider, sanitizedName) } }
             .flatMap { it.await() }
     }
+
 
     suspend fun getSeriesCover(
         libraryId: MediaServerLibraryId,
@@ -205,12 +206,7 @@ class MetadataService(
                         matchSeries(series, books, searchTitles, provider, null, eventFlow)
                             ?.let { provider to it }
                     } catch (e: ProviderException) {
-                        val cause = e.cause
-                        val errorMessage = if (cause is ResponseException) {
-                            "${cause::class.simpleName}: status code ${cause.response.status} ${cause.response.bodyAsText()}"
-                        } else {
-                            "${cause?.let { "${it::class.simpleName}: ${it.message}" } ?: "Unknown error"}"
-                        }
+                        val errorMessage = describeProviderError(e.cause)
                         logger.warn { "Provider ${e.provider} failed during series match, skipping: $errorMessage" }
                         eventFlow.emit(ProviderErrorEvent(provider = e.provider, message = errorMessage))
                         null
@@ -262,6 +258,8 @@ class MetadataService(
             } catch (e: YenPressEmptySeriesException) {
                 logger.debug { "YenPress has no books for series, skipping provider" }
                 return null
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 throw ProviderException(provider.providerName(), e)
             }
@@ -299,6 +297,8 @@ class MetadataService(
                 }
             }.toMap()
 
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw ProviderException(provider.providerName(), e)
         }
@@ -378,13 +378,10 @@ class MetadataService(
                         ).also {
                             eventFlow.emit(ProviderCompletedEvent(provider.providerName()))
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: ProviderException) {
-                        val cause = e.cause
-                        val errorMessage = if (cause is ResponseException) {
-                            "${cause::class.simpleName}: status code ${cause.response.status} ${cause.response.bodyAsText()}"
-                        } else {
-                            "${cause?.let { "${it::class.simpleName}: ${it.message}" } ?: "Unknown error"}"
-                        }
+                        val errorMessage = describeProviderError(e.cause)
                         logger.warn { "Provider ${e.provider} failed during metadata aggregation, skipping: $errorMessage" }
                         eventFlow.emit(ProviderErrorEvent(provider = e.provider, message = errorMessage))
                         null
@@ -439,6 +436,8 @@ class MetadataService(
         return try {
             provider.getSeriesMetadata(providerSeriesId)
         } catch (e: YenPressEmptySeriesException) {
+            throw e
+        } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             throw ProviderException(provider.providerName(), e)
@@ -503,4 +502,54 @@ class MetadataService(
         cause: Throwable,
     ) : RuntimeException(cause)
 
+}
+
+/**
+ * Runs a single provider's search in isolation: any provider-level failure is logged and turned
+ * into an empty result so the aggregating caller can continue with the remaining providers.
+ * Coroutine cancellation is rethrown and never swallowed.
+ */
+internal suspend fun safeProviderSearch(
+    provider: MetadataProvider,
+    seriesName: String,
+): Collection<SeriesSearchResult> {
+    return try {
+        provider.searchSeries(seriesName)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        val reason = describeProviderError(e)
+        logger.warn { "Provider ${provider.providerName()} failed during search for \"$seriesName\", skipping: $reason" }
+        emptyList()
+    }
+}
+
+/**
+ * Builds a short, log-friendly description of a provider failure.
+ * Detects HTTP status and Cloudflare "Just a moment" challenge pages so that
+ * blocked/forbidden providers are clearly identified instead of dumping the full HTML body.
+ */
+internal suspend fun describeProviderError(cause: Throwable?): String {
+    if (cause == null) return "Unknown error"
+    if (cause is ResponseException) {
+        val status = cause.response.status
+        val body = try {
+            cause.response.bodyAsText()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            ""
+        }
+        val cloudflare = body.contains("Just a moment", ignoreCase = true) ||
+            body.contains("challenges.cloudflare.com", ignoreCase = true) ||
+            body.contains("cf_chl", ignoreCase = true)
+        val base = "${cause::class.simpleName}: status code $status"
+        return when {
+            status.value == 403 && cloudflare -> "$base (provider blocked/forbidden - likely Cloudflare challenge)"
+            status.value == 403 -> "$base (provider blocked/forbidden)"
+            cloudflare -> "$base (likely Cloudflare challenge)"
+            else -> "$base $body"
+        }
+    }
+    return "${cause::class.simpleName}: ${cause.message}"
 }
