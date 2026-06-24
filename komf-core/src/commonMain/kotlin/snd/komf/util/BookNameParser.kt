@@ -5,13 +5,14 @@ import snd.komf.model.BookRange
 object BookNameParser {
     private val volumeRegexes = listOf(
         "(?i)(?:^|,?\\s)\\(?volume\\s(?<volumeStart>[0-9]+)(,?\\s?[0-9]+,)+(?<volumeEnd>\\s?[0-9]+)\\)?".toRegex(),
-        "(?i)(?:^|,?\\s)\\(?([vtT]|vols\\.\\s|vol\\.\\s|volume\\s)(?<volumeStart>[0-9]+([.x#][0-9]+)?)(?<volumeEnd>-[0-9]+([.x#][0-9]+)?)?\\)?".toRegex(),
+        "(?i)(?:^|[,_]?\\s|_)\\(?(vols\\.\\s?|vol\\.\\s?|volume\\s)(?<volumeStart>[0-9]+([.x#][0-9]+)?)(?<volumeEnd>-[0-9]+([.x#][0-9]+)?)?\\)?".toRegex(),
+        "(?i)(?:^|,?\\s)([vtT])(?<volumeStart>[0-9]+([.x#][0-9]+)?)(?<volumeEnd>-[0-9]+([.x#][0-9]+)?)?".toRegex(),
         ".*第(?<volumeStart>\\d+)-?(?<volumeEnd>\\d+)?.*巻".toRegex(),
         ".*年(?:[0-9]+月)?(?:[0-9]+日)?(?<volumeStart>\\d+)-?(?<volumeEnd>\\d+)?号".toRegex(),
     )
 
     private val chapterRegexes = listOf(
-        "(?i)(?:^|\\s?)(c|ch\\.\\s|chapter\\s|ep(?:isode)?\\.?\\s)(?<start>[0-9]+([.x#][0-9]+)?)(?<end>-[0-9]+([.x#][0-9]+)?)?".toRegex(),
+        "(?i)(?:^|\\s)(c|ch\\.\\s?|chapter\\s|ep(?:isode)?\\.?\\s?)(?<start>[0-9]+([.x#][0-9]+)?)(?<end>-[0-9]+([.x#][0-9]+)?)?".toRegex(),
         ".*第(?<start>\\d+(\\.\\d+)?)-?(?<end>\\d+(\\.\\d+)?)?.*話".toRegex(),
     )
     private val bookNumberRegexes = listOf(
