@@ -1,5 +1,29 @@
 # Komga and Kavita Metadata Fetcher
-Download latest version from https://github.com/Snd-R/komf/releases
+
+> **Note:** This is a fork of [Snd-R/komf](https://github.com/Snd-R/komf) with additional
+> features and fixes (see [What's different in this fork](#whats-different-in-this-fork)).
+> Prebuilt Docker images are published to GitHub Container Registry at
+> [`ghcr.io/gregoryn22/komf`](https://github.com/gregoryn22/komf/pkgs/container/komf).
+> For the original project, see [Snd-R/komf releases](https://github.com/Snd-R/komf/releases).
+
+## What's different in this fork
+
+Compared to upstream, this fork adds:
+
+- **GHCR Docker images** — `ghcr.io/gregoryn22/komf:latest` built automatically from `master`,
+  so you can pull and run without building the JAR yourself.
+- **Title sanitization** (`postProcessing.titleSanitization`) — strip publisher suffixes,
+  release-group tags, and other noise from a series name before it is sent to providers,
+  improving match rates. Supports explicit suffixes and regex patterns.
+- **Respect book number lock** (`postProcessing.respectBookNumberLock`) — skip overwriting a
+  book's number / numberSort when that field is locked in the media server. Also settable via
+  the `KOMF_KOMGA_RESPECT_BOOK_NUMBER_LOCK` env var.
+- **Provider error isolation** — a single failing metadata provider no longer aborts the whole
+  search / match / aggregate; the error is reported and remaining providers continue.
+- **Improved manga book ordering** — volume/chapter parsing order and regex patterns reworked,
+  with a warning when multiple books resolve to the same sort number.
+- **MangaBaka & parser robustness fixes** — lenient JSON parsing, nullable-field handling,
+  404 cover handling, and BookNameParser improvements (incl. upstream PRs #273 and #294).
 
 ## Overview
 Komga and Kavita Metadata Fetcher is a tool that fetches metadata and thumbnails for your digital comic book library.\
@@ -40,7 +64,7 @@ To run the application using Docker Compose, use the following YAML configuratio
 version: "3.7"
 services:
   komf:
-    image: sndxr/komf:latest
+    image: ghcr.io/gregoryn22/komf:latest # fork image; upstream is sndxr/komf:latest
     container_name: komf
     ports:
       - "8085:8085"
@@ -74,7 +98,7 @@ docker create \
   -e KOMF_LOG_LEVEL=INFO \
   -v /path/to/config:/config \
   --restart unless-stopped \
-  sndxr/komf:latest
+  ghcr.io/gregoryn22/komf:latest
 ```
 
 - if you don't already have a komga or kavita network you'll need to network create a new one
@@ -117,6 +141,11 @@ komga:
           - "ja"
           - "ja-ro"
         orderBooks: false # will order books using parsed volume or chapter number
+        respectBookNumberLock: false # if true, skip overwriting book number/numberSort when locked in komga (env:KOMF_KOMGA_RESPECT_BOOK_NUMBER_LOCK)
+        titleSanitization: # strip noise from series name before provider search (improves matching)
+          enabled: false
+          stripSuffixes: [ ] # case-insensitive literal suffixes removed from the end, e.g. ["(Digital)", "- Manga"]
+          stripPatterns: [ ] # regex patterns removed anywhere in the title, e.g. ["\\s*\\[[^\\]]*\\]"] to drop bracketed tags
         scoreTagName: "score" # adds score tag of specified format e.g. "score: 8" only uses integer part of rating. Can be used in search using query: tag:"score: 8" in komga
         readingDirectionValue: # override reading direction for all series. should be one of these: LEFT_TO_RIGHT, RIGHT_TO_LEFT, VERTICAL, WEBTOON
         languageValue: # set default language for series. Must use BCP 47 format e.g. "en"
@@ -153,6 +182,11 @@ kavita:
         alternativeSeriesTitleLanguages: # alternative title language. Only first language is used. Use single value for consistency
           - "ja-ro"
         orderBooks: false # will order books using parsed volume or chapter number. works only with COMIC_INFO
+        respectBookNumberLock: false # if true, skip overwriting book number/numberSort when locked
+        titleSanitization: # strip noise from series name before provider search (improves matching)
+          enabled: false
+          stripSuffixes: [ ] # case-insensitive literal suffixes removed from the end
+          stripPatterns: [ ] # regex patterns removed anywhere in the title
         languageValue: # set default language for series. Must use BCP 47 format e.g. "en"
 
 notifications:
