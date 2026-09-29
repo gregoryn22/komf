@@ -111,18 +111,20 @@ class KomgaMediaServerClientAdapter(
 
     override suspend fun getSeriesThumbnail(seriesId: MediaServerSeriesId): Image? {
         return runCatching {
-            Image(komgaSeriesClient.getSeriesDefaultThumbnail(KomgaSeriesId(seriesId.value)))
+            komgaSeriesClient.getDefaultThumbnail(KomgaSeriesId(seriesId.value))?.let {
+                Image(it)
+            }
         }.getOrNull()
     }
 
     override suspend fun getSeriesThumbnails(seriesId: MediaServerSeriesId): Collection<MediaServerSeriesThumbnail> {
-        return komgaSeriesClient.getSeriesThumbnails(KomgaSeriesId(seriesId.value))
+        return komgaSeriesClient.getThumbnails(KomgaSeriesId(seriesId.value))
             .map { it.toMediaServerSeriesThumbnail() }
 
     }
 
     override suspend fun getBook(bookId: MediaServerBookId): MediaServerBook {
-        return komgaBookClient.getBook(KomgaBookId(bookId.value)).toMediaServerBook()
+        return komgaBookClient.getOne(KomgaBookId(bookId.value)).toMediaServerBook()
     }
 
     override suspend fun getBooks(seriesId: MediaServerSeriesId): Collection<MediaServerBook> {
@@ -135,13 +137,13 @@ class KomgaMediaServerClientAdapter(
     }
 
     override suspend fun getBookThumbnails(bookId: MediaServerBookId): Collection<MediaServerBookThumbnail> {
-        return komgaBookClient.getBookThumbnails(KomgaBookId(bookId.value))
+        return komgaBookClient.getThumbnails(KomgaBookId(bookId.value))
             .map { it.toMediaServerBookThumbnail() }
     }
 
     override suspend fun getBookThumbnail(bookId: MediaServerBookId): Image? {
         return runCatching {
-            Image(komgaBookClient.getBookThumbnail(KomgaBookId(bookId.value)))
+            komgaBookClient.getDefaultThumbnail(KomgaBookId(bookId.value))?.let { Image(it) }
         }.getOrNull()
     }
 
@@ -157,14 +159,14 @@ class KomgaMediaServerClientAdapter(
         seriesId: MediaServerSeriesId,
         metadata: MediaServerSeriesMetadataUpdate
     ) {
-        komgaSeriesClient.updateSeries(
+        komgaSeriesClient.update(
             seriesId = KomgaSeriesId(seriesId.value),
             request = metadata.toMetadataUpdateRequest()
         )
     }
 
     override suspend fun deleteSeriesThumbnail(seriesId: MediaServerSeriesId, thumbnailId: MediaServerThumbnailId) {
-        komgaSeriesClient.deleteSeriesThumbnail(
+        komgaSeriesClient.deleteThumbnail(
             KomgaSeriesId(seriesId.value),
             KomgaThumbnailId(thumbnailId.value)
         )
@@ -178,7 +180,7 @@ class KomgaMediaServerClientAdapter(
     }
 
     override suspend fun deleteBookThumbnail(bookId: MediaServerBookId, thumbnailId: MediaServerThumbnailId) {
-        komgaBookClient.deleteBookThumbnail(
+        komgaBookClient.deleteThumbnail(
             KomgaBookId(bookId.value),
             KomgaThumbnailId(thumbnailId.value)
         )
@@ -192,7 +194,7 @@ class KomgaMediaServerClientAdapter(
     }
 
     override suspend fun resetSeriesMetadata(seriesId: MediaServerSeriesId, seriesName: String) {
-        komgaSeriesClient.updateSeries(
+        komgaSeriesClient.update(
             KomgaSeriesId(seriesId.value),
             seriesMetadataResetRequest(seriesName)
         )
@@ -209,7 +211,7 @@ class KomgaMediaServerClientAdapter(
             return null
         }
 
-        val uploadedThumbnail = komgaSeriesClient.uploadSeriesThumbnail(
+        val uploadedThumbnail = komgaSeriesClient.uploadThumbnail(
             seriesId = KomgaSeriesId(seriesId.value),
             file = thumbnail.bytes,
             selected = selected
@@ -231,7 +233,7 @@ class KomgaMediaServerClientAdapter(
             return null
         }
 
-        val uploadedThumbnail = komgaBookClient.uploadBookThumbnail(
+        val uploadedThumbnail = komgaBookClient.uploadThumbnail(
             bookId = KomgaBookId(bookId.value),
             file = thumbnail.bytes,
             selected = selected

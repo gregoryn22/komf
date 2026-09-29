@@ -1,7 +1,7 @@
 package snd.komf.app
 
 import ch.qos.logback.classic.Level
-import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.LoggerContext
 import com.charleskorn.kaml.Yaml
 import com.charleskorn.kaml.YamlConfiguration
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -17,6 +17,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.slf4j.Logger.ROOT_LOGGER_NAME
 import org.slf4j.LoggerFactory
 import snd.komf.CoreModule
 import snd.komf.app.config.AppConfig
@@ -47,7 +48,9 @@ class AppContext(private val configPath: Path? = null) {
     private var mediaServerModule: MediaServerModule
     private var notificationsModule: NotificationsModule
 
-    private var apiRoutesDependencies: MutableStateFlow<ApiDynamicDependencies>
+    private val apiRoutesDependencies: MutableStateFlow<ApiRouteDependencies>
+
+    private val configDir = configPath?.let { if (it.isDirectory()) it else it.parent } ?: Path.of("./")
 
     private val yaml = Yaml(
         configuration = YamlConfiguration(
@@ -93,6 +96,7 @@ class AppContext(private val configPath: Path? = null) {
 
         providersModule = CoreModule(
             config = config.metadataProviders,
+            workDir = configDir,
             ktor = ktorBaseClient,
             onStateRefresh = this::refreshState,
         )
@@ -113,7 +117,7 @@ class AppContext(private val configPath: Path? = null) {
         serverModule = ServerModule(
             serverPort = config.server.port,
             onConfigUpdate = this::refreshState,
-            dynamicDependencies = apiRoutesDependencies,
+            dependencies = apiRoutesDependencies,
         )
 
         serverModule.startServer()
@@ -138,6 +142,7 @@ class AppContext(private val configPath: Path? = null) {
 
         val providersModule = CoreModule(
             config = config.metadataProviders,
+            workDir = configDir,
             ktor = ktorBaseClient,
             onStateRefresh = this::refreshState,
         )
@@ -161,7 +166,7 @@ class AppContext(private val configPath: Path? = null) {
         apiRoutesDependencies.value = createApiRoutesDependencies()
     }
 
-    private fun createApiRoutesDependencies() = ApiDynamicDependencies(
+    private fun createApiRoutesDependencies() = ApiRouteDependencies(
         config = this.appConfig,
         jobTracker = mediaServerModule.jobTracker,
         jobsRepository = mediaServerModule.jobRepository,
@@ -174,7 +179,9 @@ class AppContext(private val configPath: Path? = null) {
         appriseService = notificationsModule.appriseService,
         appriseRenderer = notificationsModule.appriseVelocityRenderer,
         mangaBakaDownloader = providersModule.mangaBakaDatabaseDownloader,
-        mangaBakaDbMetadata = providersModule.mangaBakaDbMetadata
+        mangaBakaRepository = providersModule.mangaBakaRepository,
+        bookWalkerDbDownloader = providersModule.bookWalkerDbDownloader,
+        httpClient = ktorBaseClient
     )
 
     private suspend fun writeConfig(config: AppConfig) {
@@ -197,7 +204,14 @@ class AppContext(private val configPath: Path? = null) {
     }
 
     private fun setLogLevel(config: AppConfig) {
-        val rootLogger = LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) as Logger
-        rootLogger.level = Level.valueOf(config.logLevel.uppercase())
+        val loggerContext = LoggerFactory.getILoggerFactory() as LoggerContext
+        val targetLevel = Level.valueOf(config.logLevel.uppercase())
+        val rootLogger = loggerContext.getLogger(ROOT_LOGGER_NAME)
+        rootLogger.level = targetLevel
+
+        if (targetLevel == Level.INFO) {
+            loggerContext.getLogger("com.zaxxer").level = Level.WARN
+            loggerContext.getLogger("org.flywaydb").level = Level.WARN
+        }
     }
 }

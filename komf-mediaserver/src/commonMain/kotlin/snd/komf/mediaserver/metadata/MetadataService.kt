@@ -1,8 +1,8 @@
 package snd.komf.mediaserver.metadata
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.plugins.*
-import io.ktor.client.statement.*
+import io.ktor.client.plugins.ResponseException
+import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +24,7 @@ import snd.komf.mediaserver.jobs.MetadataJobEvent.ProviderCompletedEvent
 import snd.komf.mediaserver.jobs.MetadataJobEvent.ProviderErrorEvent
 import snd.komf.mediaserver.jobs.MetadataJobEvent.ProviderSeriesEvent
 import snd.komf.mediaserver.jobs.MetadataJobId
-import snd.komf.mediaserver.metadata.repository.SeriesMatchRepository
+import snd.komf.mediaserver.match.repository.SeriesMatchRepository
 import snd.komf.mediaserver.model.MediaServerBook
 import snd.komf.mediaserver.model.MediaServerLibraryId
 import snd.komf.mediaserver.model.MediaServerSeries
@@ -363,6 +363,7 @@ class MetadataService(
 
         val searchTitles = metadata.seriesMetadata.titles
             .map { it.name }
+            .filter { it.isNotBlank() }
 
         return providers
             .map { provider ->
