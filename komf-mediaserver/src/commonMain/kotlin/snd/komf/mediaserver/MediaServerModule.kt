@@ -43,6 +43,7 @@ import snd.komf.mediaserver.metadata.MetadataMapper
 import snd.komf.mediaserver.metadata.MetadataMerger
 import snd.komf.mediaserver.metadata.MetadataPostProcessor
 import snd.komf.mediaserver.metadata.MetadataService
+import snd.komf.mediaserver.metadata.inheritingFrom
 import snd.komf.mediaserver.metadata.MetadataUpdater
 import snd.komf.mediaserver.model.MediaServer
 import snd.komf.notifications.apprise.AppriseCliService
@@ -272,10 +273,16 @@ class MediaServerModule(
             seriesMatchRepository = seriesMatchRepository,
             metadataUpdateService = defaultUpdaterService
         )
+        val defaultConfig = config.default
         val libraryMetadataServices = config.library
             .map { (libraryId, config) ->
                 libraryId to createMetadataService(
-                    config = config,
+                    config = config.copy(
+                        postProcessing = config.postProcessing.copy(
+                            titleSanitization = config.postProcessing.titleSanitization
+                                .inheritingFrom(defaultConfig.postProcessing.titleSanitization)
+                        )
+                    ),
                     mediaServerClient = mediaServerClient,
                     seriesMatchRepository = seriesMatchRepository,
                     metadataUpdateService = libraryUpdaterServices[libraryId] ?: defaultUpdaterService
