@@ -10,7 +10,6 @@ group = "io.github.snd-r"
 version = "1.0.0-SNAPSHOT"
 
 kotlin {
-    jvmToolchain(17)
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
         optIn.add("kotlin.time.ExperimentalTime")
@@ -42,6 +41,7 @@ dependencies {
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.cors)
     implementation(libs.ktor.server.default.headers)
+    implementation(libs.ktor.server.caching.headers)
     implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.server.sse)
     implementation(libs.ktor.client.auth)

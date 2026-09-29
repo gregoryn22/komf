@@ -8,6 +8,9 @@ import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import snd.komf.mangabaka.model.MangaBakaSeries
+import snd.komf.mangabaka.model.MangaBakaSeriesId
+import snd.komf.mangabaka.model.MangaBakaType
 import snd.komf.model.Image
 import snd.komf.model.MatchQuery
 import snd.komf.model.MediaType
@@ -30,15 +33,12 @@ class MangaBakaMetadataProvider(
     private val coverFetchClient: HttpClient?,
     mediaType: MediaType,
 ) : MetadataProvider {
-    private val seriesTypes: List<MangaBakaType> = when (mediaType) {
-        MediaType.MANGA -> listOf(
-            MangaBakaType.MANGA,
-            MangaBakaType.MANHWA,
-            MangaBakaType.MANHUA,
-            MangaBakaType.OEL,
-            MangaBakaType.OTHER
-        )
-
+    private val typeExcludes: List<MangaBakaType>? = when (mediaType) {
+        MediaType.MANGA -> listOf(MangaBakaType.NOVEL)
+        else -> null
+    }
+    private val typeIncludes: List<MangaBakaType>? = when (mediaType) {
+        MediaType.MANGA -> null
         MediaType.NOVEL -> listOf(MangaBakaType.NOVEL)
         MediaType.COMIC -> listOf(MangaBakaType.OEL, MangaBakaType.OTHER)
         MediaType.WEBTOON -> listOf(MangaBakaType.MANHUA, MangaBakaType.MANHWA)
@@ -77,7 +77,8 @@ class MangaBakaMetadataProvider(
     ): Collection<SeriesSearchResult> {
         val results = dataSource.search(
             title = seriesName,
-            types = seriesTypes,
+            types = typeIncludes,
+            typesNot = typeExcludes,
         )
         results.forEach { cache.put(it.id, it) }
 
@@ -86,20 +87,15 @@ class MangaBakaMetadataProvider(
 
     override suspend fun matchSeriesMetadata(matchQuery: MatchQuery): ProviderSeriesMetadata? {
         val seriesName = matchQuery.seriesName
-        val searchResults = dataSource.search(seriesName.take(400), seriesTypes)
+        val searchResults = dataSource.search(
+            title = seriesName.take(400),
+            types = typeIncludes,
+            typesNot = typeExcludes
+        )
         searchResults.forEach { cache.put(it.id, it) }
 
         val match = searchResults.firstOrNull { series ->
-            val secondaryTitles = series.secondaryTitles
-                ?.flatMap { titles -> titles.value?.map { it.title } ?: emptyList() }
-                ?: emptyList()
-
-            val titles = listOfNotNull(
-                series.title,
-                series.nativeTitle,
-                series.romanizedTitle,
-            ) + secondaryTitles
-
+            val titles = series.titles?.map { it.title } ?: emptyList()
             nameMatcher.matches(seriesName, titles)
         }
 
@@ -117,11 +113,11 @@ class MangaBakaMetadataProvider(
             )
         } catch (e: ClientRequestException) {
             if (e.response.status == HttpStatusCode.NotFound) {
-                logger.warn { "Cover image not found for series '${series.title}' (${e.response.status}), continuing without cover" }
+                logger.warn { "Cover image not found for series ${series.id} (${e.response.status}), continuing without cover" }
                 null
             } else throw e
         }
     }
 
-    private fun ProviderSeriesId.toMangaBakaId() = MangaBakaSeriesId(this.value.toInt())
+    private fun ProviderSeriesId.toMangaBakaId() = MangaBakaSeriesId(this.value.toLong())
 }

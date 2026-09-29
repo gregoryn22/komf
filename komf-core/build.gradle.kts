@@ -1,8 +1,6 @@
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    alias(libs.plugins.kotlinAtomicfu)
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.kotlinSerialization)
 }
@@ -11,12 +9,8 @@ group = "io.github.snd-r"
 version = libs.versions.app.version.get()
 
 kotlin {
-    jvmToolchain(17)
     jvm {
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
-        }
+        compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
     }
 
     sourceSets {
@@ -27,10 +21,14 @@ kotlin {
             implementation(libs.cache4k)
             implementation(libs.commons.compress)
             implementation(libs.commons.text)
-            api(libs.exposed.core)
+            implementation(libs.exposed.core)
             implementation(libs.exposed.jdbc)
             implementation(libs.exposed.json)
+            implementation(libs.exposed.migration.jdbc)
             implementation(libs.exposed.kotlin.datetime)
+            implementation(libs.flyway.core)
+            implementation(libs.hikari.cp)
+            implementation(libs.komga.client)
             implementation(libs.kotlin.logging)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
@@ -44,6 +42,7 @@ kotlin {
             implementation(libs.sqlite.jdbc)
             implementation(libs.xmlutil.core)
             implementation(libs.xmlutil.serialization)
+            implementation(libs.zstd.jni)
 
 
             implementation(libs.twelvemonkeys.imageio.core)
