@@ -69,3 +69,29 @@ class TitleSanitizerTest {
     }
 }
 
+
+class TitleSanitizerInheritanceTest {
+    private val default = TitleSanitizationConfig(
+        enabled = true,
+        stripSuffixes = listOf("(Volumes)"),
+        stripPatterns = listOf("x")
+    )
+
+    @Test
+    fun `enabled library with no lists inherits default lists`() {
+        val result = TitleSanitizationConfig(enabled = true).inheritingFrom(default)
+        assertEquals(default, result)
+    }
+
+    @Test
+    fun `library with its own lists is left alone`() {
+        val own = TitleSanitizationConfig(enabled = true, stripSuffixes = listOf("(Chapters)"))
+        assertEquals(own, own.inheritingFrom(default))
+    }
+
+    @Test
+    fun `disabled library stays disabled`() {
+        val off = TitleSanitizationConfig(enabled = false)
+        assertEquals(off, off.inheritingFrom(default))
+    }
+}

@@ -29,3 +29,12 @@ fun sanitizeTitle(raw: String, config: TitleSanitizationConfig): String {
     return result.trim()
 }
 
+
+/**
+ * A library-level `titleSanitization` block replaces the default one entirely, so `enabled: true` with no
+ * lists silently strips nothing. Inherit the default lists when the library defines none of its own.
+ */
+fun TitleSanitizationConfig.inheritingFrom(default: TitleSanitizationConfig): TitleSanitizationConfig {
+    if (!enabled || stripSuffixes.isNotEmpty() || stripPatterns.isNotEmpty()) return this
+    return copy(stripSuffixes = default.stripSuffixes, stripPatterns = default.stripPatterns)
+}
