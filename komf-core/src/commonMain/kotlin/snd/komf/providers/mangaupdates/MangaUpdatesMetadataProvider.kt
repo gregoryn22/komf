@@ -10,6 +10,8 @@ import snd.komf.model.ProviderSeriesMetadata
 import snd.komf.model.SeriesSearchResult
 import snd.komf.providers.CoreProviders.MANGA_UPDATES
 import snd.komf.providers.MetadataProvider
+import snd.komf.providers.mangaupdates.model.SearchResult
+import snd.komf.providers.mangaupdates.model.SearchResultHit
 import snd.komf.providers.mangaupdates.model.SeriesType.ARTBOOK
 import snd.komf.providers.mangaupdates.model.SeriesType.DOUJINSHI
 import snd.komf.providers.mangaupdates.model.SeriesType.FILIPINO
@@ -81,14 +83,30 @@ class MangaUpdatesMetadataProvider(
 
     override suspend fun matchSeriesMetadata(matchQuery: MatchQuery): ProviderSeriesMetadata? {
         val seriesName = matchQuery.seriesName
-        val searchResults = client.searchSeries(seriesName.take(400), seriesTypes).results.map { it.record }
+        val searchResults = client.searchSeries(seriesName.take(400), seriesTypes).results
 
-        return searchResults
-            .firstOrNull { nameMatcher.matches(seriesName, it.title.removeSuffix(" (Novel)")) }
+        return findMatch(seriesName, searchResults, nameMatcher)
             ?.let {
                 val series = client.getSeries(it.id)
                 val thumbnail = if (fetchSeriesCovers) client.getThumbnail(series) else null
                 metadataMapper.toSeriesMetadata(series, thumbnail)
             }
     }
+}
+
+/**
+ * Matches against the primary title first, then against the name the search actually hit.
+ * MangaUpdates primary titles are usually romanized (e.g. "Shingeki no Kyojin"), while the hit title
+ * is the associated name that matched the query (e.g. "Attack on Titan"), so English series names still match.
+ */
+internal fun findMatch(
+    seriesName: String,
+    searchResults: Collection<SearchResultHit>,
+    nameMatcher: NameSimilarityMatcher,
+): SearchResult? {
+    fun matches(title: String?) = title != null && nameMatcher.matches(seriesName, title.removeSuffix(" (Novel)"))
+
+    return (searchResults.firstOrNull { matches(it.record.title) }
+        ?: searchResults.firstOrNull { matches(it.hitTitle) })
+        ?.record
 }

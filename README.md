@@ -27,6 +27,10 @@ Compared to upstream, this fork adds:
 - **Replace grayscale series covers** (`replaceGrayscaleSeriesCovers`, *experimental*) — upload
   the provider's cover only for series whose current poster looks like an interior manga page.
   See [Replacing interior-page posters](#replacing-interior-page-posters-experimental).
+- **MangaUpdates English title matching** — MangaUpdates lists most series under a romanized
+  title (e.g. "Shingeki no Kyojin"). Matching now also accepts the alternate name the search
+  hit (e.g. "Attack on Titan"), so English-named series match without extra requests. Idea from
+  upstream PR 339 by xxxarmitagexxx.
 
 ## Overview
 Komga and Kavita Metadata Fetcher is a tool that fetches metadata and thumbnails for your digital comic book library.\

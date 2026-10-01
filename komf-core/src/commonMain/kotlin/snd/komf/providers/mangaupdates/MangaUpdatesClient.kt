@@ -42,7 +42,8 @@ class MangaUpdatesClient(
                 record = result.record.copy(
                     title = unescapeEntities(result.record.title, false),
                     year = result.record.year?.let { takeLastYear(it) }
-                )
+                ),
+                hitTitle = result.hitTitle?.let { unescapeEntities(it, false) },
             )
         })
     }
