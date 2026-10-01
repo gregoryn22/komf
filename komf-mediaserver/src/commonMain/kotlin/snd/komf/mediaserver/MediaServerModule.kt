@@ -351,6 +351,7 @@ class MediaServerModule(
             uploadBookCovers = config.bookCovers,
             uploadSeriesCovers = config.seriesCovers,
             replaceGrayscaleSeriesCovers = config.replaceGrayscaleSeriesCovers,
+            fallbackUseSeriesCoverForBook = config.fallbackUseSeriesCoverForBook,
             overrideExistingCovers = config.overrideExistingCovers,
             lockCovers = config.lockCovers,
         )

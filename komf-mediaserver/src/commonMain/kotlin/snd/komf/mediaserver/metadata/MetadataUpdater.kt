@@ -36,6 +36,7 @@ class MetadataUpdater(
     private val uploadBookCovers: Boolean,
     private val uploadSeriesCovers: Boolean,
     private val replaceGrayscaleSeriesCovers: Boolean,
+    private val fallbackUseSeriesCoverForBook: Boolean,
     private val lockCovers: Boolean,
 ) {
     private val requireMetadataRefresh = setOf(UpdateMode.COMIC_INFO)
@@ -132,7 +133,9 @@ class MetadataUpdater(
             }
         }
 
-        val newThumbnail = if (uploadBookCovers) metadata?.thumbnail else null
+        val newThumbnail = if (uploadBookCovers) {
+            metadata?.thumbnail ?: if (fallbackUseSeriesCoverForBook && uploadSeriesCovers) seriesMeta.thumbnail else null
+        } else null
         val thumbnailId = replaceBookThumbnail(book.id, newThumbnail)
 
         if (thumbnailId == null) {
