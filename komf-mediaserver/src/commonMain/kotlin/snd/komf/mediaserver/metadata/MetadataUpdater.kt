@@ -18,6 +18,7 @@ import snd.komf.model.SeriesMetadata
 import snd.komf.model.UpdateMode
 import snd.komf.util.BookNameParser
 import snd.komf.util.caseInsensitiveNatSortComparator
+import snd.komf.util.isGrayscaleImage
 import kotlin.math.floor
 
 private val logger = KotlinLogging.logger {}
@@ -34,6 +35,7 @@ class MetadataUpdater(
     private val overrideExistingCovers: Boolean,
     private val uploadBookCovers: Boolean,
     private val uploadSeriesCovers: Boolean,
+    private val replaceGrayscaleSeriesCovers: Boolean,
     private val lockCovers: Boolean,
 ) {
     private val requireMetadataRefresh = setOf(UpdateMode.COMIC_INFO)
@@ -75,8 +77,9 @@ class MetadataUpdater(
             }
         }
 
-        val newThumbnail = if (uploadSeriesCovers) metadata.thumbnail else null
-        val thumbnailId = replaceSeriesThumbnail(series.id, newThumbnail)
+        val replacePoster = replaceGrayscaleSeriesCovers && hasGrayscalePoster(series)
+        val newThumbnail = if (uploadSeriesCovers || replacePoster) metadata.thumbnail else null
+        val thumbnailId = replaceSeriesThumbnail(series.id, newThumbnail, forceSelect = replacePoster)
 
         if (thumbnailId == null) {
             seriesThumbnailsRepository.delete(series.id)
@@ -167,14 +170,34 @@ class MetadataUpdater(
         return uploadedThumbnail?.id
     }
 
+    /**
+     * Experimental: detects series whose poster is an interior page (black and white) rather than a cover.
+     * Series with a user uploaded or sidecar thumbnail are never considered.
+     */
+    private suspend fun hasGrayscalePoster(series: MediaServerSeries): Boolean {
+        val komfThumbnail = seriesThumbnailsRepository.findFor(series.id)?.thumbnailId
+        val thumbnails = mediaServerClient.getSeriesThumbnails(series.id)
+        if (thumbnails.any { it.id != komfThumbnail }) return false
+
+        // only a cover komf uploaded earlier is left. Keep replacing it so the poster
+        // does not fall back to the generated page on every other update
+        if (thumbnails.isNotEmpty()) return true
+
+        val poster = mediaServerClient.getSeriesThumbnail(series.id) ?: return false
+        val grayscale = isGrayscaleImage(poster.bytes)
+        if (grayscale) logger.info { "series ${series.name} poster looks like an interior page, replacing it" }
+        return grayscale
+    }
+
     private suspend fun replaceSeriesThumbnail(
         seriesId: MediaServerSeriesId,
-        thumbnail: Image?
+        thumbnail: Image?,
+        forceSelect: Boolean = false,
     ): MediaServerThumbnailId? {
         val matchedSeries = seriesThumbnailsRepository.findFor(seriesId)
         val thumbnails = mediaServerClient.getSeriesThumbnails(seriesId)
 
-        val selectThumbnail = overrideExistingCovers || thumbnails.isEmpty()
+        val selectThumbnail = forceSelect || overrideExistingCovers || thumbnails.isEmpty()
 
         val uploadedThumbnail = thumbnail?.let {
             mediaServerClient.uploadSeriesThumbnail(

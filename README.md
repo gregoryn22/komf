@@ -24,6 +24,9 @@ Compared to upstream, this fork adds:
   with a warning when multiple books resolve to the same sort number.
 - **MangaBaka & parser robustness fixes** — lenient JSON parsing, nullable-field handling,
   404 cover handling, and BookNameParser improvements (incl. upstream PRs #273 and #294).
+- **Replace grayscale series covers** (`replaceGrayscaleSeriesCovers`, *experimental*) — upload
+  the provider's cover only for series whose current poster looks like an interior manga page.
+  See [Replacing interior-page posters](#replacing-interior-page-posters-experimental).
 
 ## Overview
 Komga and Kavita Metadata Fetcher is a tool that fetches metadata and thumbnails for your digital comic book library.\
@@ -130,6 +133,7 @@ komga:
       bookCovers: false # update book thumbnails
       seriesCovers: false # update series thumbnails
       overrideExistingCovers: true # if false will upload but not select new cover if another cover already exists
+      replaceGrayscaleSeriesCovers: false # experimental. upload series cover if the current poster looks like a black and white interior page
       overrideComicInfo: false # Replace existing ComicInfo file. If false, only append additional data
       postProcessing:
         seriesTitle: false # update series title
@@ -301,6 +305,38 @@ komga_or_kavita:
       123:
         aggregate: true
         seriesCovers: true
+```
+
+### Replacing interior-page posters (experimental)
+
+> **Experimental:** the detection is a simple heuristic and its behavior or thresholds may change.
+
+When a series has no cover of its own, Komga uses the first page of its first book as the poster. For
+volume releases that is usually the volume cover, but for chapter releases it is often a black and white
+interior page. `replaceGrayscaleSeriesCovers: true` makes komf check the current poster during a metadata
+update and, if it is effectively black and white, upload and select the provider's cover, even when
+`seriesCovers` is `false` and `overrideExistingCovers` is `false`.
+
+- Series with a user uploaded or sidecar cover are never touched.
+- Detection measures how much of the downscaled poster is colored, ignoring overall tint so yellowed or sepia
+  scans still count as black and white. Posters with under ~3% colored pixels are replaced.
+- Known misses: colored interior pages (e.g. color opening pages, credit pages) are not detected, and real
+  covers drawn in black and white will be replaced. The replacement is the provider's cover, so the worst case
+  is usually a different cover of the same series.
+- Once a poster has been replaced, komf keeps refreshing its own cover on later updates instead of re-checking.
+- Intended for Komga. Kavita does not expose which covers were uploaded, so the protection for manually
+  uploaded covers does not apply there.
+
+Per-library settings replace the default ones, so set it on each library that should use it:
+
+```yaml
+komga:
+  metadataUpdate:
+    library:
+      0E24F01GT2D2P:
+        seriesCovers: false
+        overrideExistingCovers: false
+        replaceGrayscaleSeriesCovers: true
 ```
 
 ## Providers config for a library
