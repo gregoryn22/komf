@@ -30,6 +30,10 @@ Compared to upstream, this fork adds:
 - **Series cover fallback for books** (`fallbackUseSeriesCoverForBook`) — when both `bookCovers`
   and `seriesCovers` are enabled and a provider has no cover for a book, use the series cover
   instead of leaving the first page. From upstream PR 281 by mjoetodd.
+- **MangaUpdates English title matching** — MangaUpdates lists most series under a romanized
+  title (e.g. "Shingeki no Kyojin"). Matching now also accepts the alternate name the search
+  hit (e.g. "Attack on Titan"), so English-named series match without extra requests. Idea from
+  upstream PR 339 by xxxarmitagexxx.
 
 ## Overview
 Komga and Kavita Metadata Fetcher is a tool that fetches metadata and thumbnails for your digital comic book library.\
