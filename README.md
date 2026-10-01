@@ -27,6 +27,9 @@ Compared to upstream, this fork adds:
 - **Replace grayscale series covers** (`replaceGrayscaleSeriesCovers`, *experimental*) — upload
   the provider's cover only for series whose current poster looks like an interior manga page.
   See [Replacing interior-page posters](#replacing-interior-page-posters-experimental).
+- **Series cover fallback for books** (`fallbackUseSeriesCoverForBook`) — when both `bookCovers`
+  and `seriesCovers` are enabled and a provider has no cover for a book, use the series cover
+  instead of leaving the first page. From upstream PR 281 by mjoetodd.
 - **MangaUpdates English title matching** — MangaUpdates lists most series under a romanized
   title (e.g. "Shingeki no Kyojin"). Matching now also accepts the alternate name the search
   hit (e.g. "Attack on Titan"), so English-named series match without extra requests. Idea from
@@ -136,6 +139,7 @@ komga:
       mergeGenres: false # if true and aggregate is enabled will merge genres from all providers
       bookCovers: false # update book thumbnails
       seriesCovers: false # update series thumbnails
+      fallbackUseSeriesCoverForBook: false # If updating series cover and book cover, and no book cover exists, use the series cover for the book cover.
       overrideExistingCovers: true # if false will upload but not select new cover if another cover already exists
       replaceGrayscaleSeriesCovers: false # experimental. upload series cover if the current poster looks like a black and white interior page
       overrideComicInfo: false # Replace existing ComicInfo file. If false, only append additional data
@@ -181,6 +185,7 @@ kavita:
       mergeGenres: false # if true and aggregate is enabled will merge genres from all providers
       bookCovers: false #update book thumbnails
       seriesCovers: false #update series thumbnails
+      fallbackUseSeriesCoverForBook: false # If updating series cover and book cover, and no book cover exists, use the series cover for the book cover.
       overrideExistingCovers: true # if false will upload but not select new cover if another cover already exists
       lockCovers: true # lock cover images so that kavita does not change them
       postProcessing:
@@ -301,6 +306,7 @@ komga_or_kavita:
         aggregate: false
         bookCovers: false
         seriesCovers: false
+        fallbackUseSeriesCoverForBook: false
         postProcessing:
           seriesTitle: false
           titleType: LOCALIZED
