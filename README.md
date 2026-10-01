@@ -27,6 +27,9 @@ Compared to upstream, this fork adds:
 - **Replace grayscale series covers** (`replaceGrayscaleSeriesCovers`, *experimental*) — upload
   the provider's cover only for series whose current poster looks like an interior manga page.
   See [Replacing interior-page posters](#replacing-interior-page-posters-experimental).
+- **Series cover fallback for books** (`fallbackUseSeriesCoverForBook`) — when both `bookCovers`
+  and `seriesCovers` are enabled and a provider has no cover for a book, use the series cover
+  instead of leaving the first page. From upstream PR 281 by mjoetodd.
 
 ## Overview
 Komga and Kavita Metadata Fetcher is a tool that fetches metadata and thumbnails for your digital comic book library.\
