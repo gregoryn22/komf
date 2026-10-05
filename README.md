@@ -34,6 +34,10 @@ Compared to upstream, this fork adds:
   title (e.g. "Shingeki no Kyojin"). Matching now also accepts the alternate name the search
   hit (e.g. "Attack on Titan"), so English-named series match without extra requests. Idea from
   upstream PR 339 by xxxarmitagexxx.
+- **Identify by MangaBaka URL** — paste a MangaBaka series URL (e.g.
+  `https://mangabaka.org/manga/602380/Salamander`) into the manual search to get that exact
+  series as the MangaBaka result, bypassing name matching. Identifying from it is remembered for
+  future automatic matches like any other manual pick.
 
 ## Overview
 Komga and Kavita Metadata Fetcher is a tool that fetches metadata and thumbnails for your digital comic book library.\

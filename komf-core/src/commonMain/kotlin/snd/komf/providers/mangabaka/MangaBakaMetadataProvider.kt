@@ -75,6 +75,8 @@ class MangaBakaMetadataProvider(
         seriesName: String,
         limit: Int
     ): Collection<SeriesSearchResult> {
+        parseMangaBakaSeriesUrl(seriesName)?.let { return searchById(it) }
+
         val results = dataSource.search(
             title = seriesName,
             types = typeIncludes,
@@ -83,6 +85,25 @@ class MangaBakaMetadataProvider(
         results.forEach { cache.put(it.id, it) }
 
         return results.take(limit).map { metadataMapper.toSeriesSearchResult(it) }
+    }
+
+    // a pasted series url is an explicit pick, so media type filters are intentionally not applied
+    private suspend fun searchById(id: MangaBakaSeriesId): Collection<SeriesSearchResult> {
+        val series = try {
+            cache.get(id) { dataSource.getSeries(id) }
+        } catch (e: ClientRequestException) {
+            if (e.response.status != HttpStatusCode.NotFound) throw e
+            null
+        } catch (e: NoSuchElementException) {
+            // local database has no row for this id
+            null
+        }
+
+        if (series == null) {
+            logger.warn { "MangaBaka series $id not found" }
+            return emptyList()
+        }
+        return listOf(metadataMapper.toSeriesSearchResult(series))
     }
 
     override suspend fun matchSeriesMetadata(matchQuery: MatchQuery): ProviderSeriesMetadata? {
